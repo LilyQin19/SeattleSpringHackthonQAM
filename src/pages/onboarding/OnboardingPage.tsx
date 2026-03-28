@@ -2,20 +2,21 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { FITNESS_LEVELS } from '@/lib/constants'
+import { useAuth } from '@/contexts/AuthContext'
+import { useTrainingPlan } from '@/contexts/TrainingPlanContext'
 import type { FitnessLevel, OnboardingState } from '@/types'
 
-interface OnboardingPageProps {
-  onComplete: () => void
-}
+export function OnboardingPage() {
+  const { user, updateUser } = useAuth()
+  const { generatePlan, isGenerating } = useTrainingPlan()
 
-export function OnboardingPage({ onComplete }: OnboardingPageProps) {
   const [state, setState] = useState<OnboardingState>({
     race_date: null,
     fitness_level: null,
     goal_time: null,
     current_step: 0,
   })
-  const [isGenerating, setIsGenerating] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const totalSteps = 4
   const progress = ((state.current_step + 1) / totalSteps) * 100
@@ -23,12 +24,31 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
   const next = () => setState(s => ({ ...s, current_step: s.current_step + 1 }))
   const back = () => setState(s => ({ ...s, current_step: Math.max(0, s.current_step - 1) }))
 
-  const handleGenerate = () => {
-    setIsGenerating(true)
-    setTimeout(() => {
-      setIsGenerating(false)
-      onComplete()
-    }, 2500)
+  const handleGenerate = async () => {
+    if (!user || !state.race_date || !state.fitness_level) return
+
+    try {
+      setError(null)
+
+      // Generate training plan via AI and save to DB
+      const savedPlan = await generatePlan(
+        user.id,
+        state.race_date,
+        state.fitness_level,
+        state.goal_time,
+      )
+
+      // Update user profile with onboarding data + plan reference
+      await updateUser({
+        race_date: state.race_date,
+        fitness_level: state.fitness_level,
+        goal_time: state.goal_time,
+        training_plan_id: savedPlan.id,
+      })
+      // App.tsx will re-render to dashboard because hasCompletedOnboarding is now true
+    } catch (err) {
+      setError('Failed to generate your training plan. Please try again.')
+    }
   }
 
   return (
@@ -216,8 +236,15 @@ export function OnboardingPage({ onComplete }: OnboardingPageProps) {
             >
               Skip — I don't have a goal time
             </button>
+
+            {error && (
+              <div className="px-4 py-3 rounded-lg text-sm font-medium bg-destructive/10 text-destructive">
+                {error}
+              </div>
+            )}
+
             <div className="flex gap-3">
-              <Button variant="outline" onClick={back} className="flex-1">Back</Button>
+              <Button variant="outline" onClick={back} disabled={isGenerating} className="flex-1">Back</Button>
               <Button
                 variant="gradient"
                 onClick={handleGenerate}

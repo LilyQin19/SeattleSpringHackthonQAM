@@ -1,6 +1,7 @@
 import { type ReactNode, useState } from 'react'
 import { Calendar, BarChart3, Clock, Activity, Plus, LogOut } from 'lucide-react'
 import { RunEntryModal } from '@/components/runs/RunEntryModal'
+import { useAuth } from '@/contexts/AuthContext'
 
 type TabId = 'today' | 'calendar' | 'history' | 'analytics'
 
@@ -21,7 +22,11 @@ const TABS: { id: TabId; label: string; icon: typeof Activity }[] = [
 ]
 
 export function AppLayout({ children, activeTab, onTabChange, onLogRun, showRunModal, onCloseRunModal }: AppLayoutProps) {
+  const { user, signOut } = useAuth()
   const [showUserMenu, setShowUserMenu] = useState(false)
+
+  const userInitial = user?.email?.charAt(0).toUpperCase() || '?'
+  const userEmail = user?.email || ''
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -43,17 +48,19 @@ export function AppLayout({ children, activeTab, onTabChange, onLogRun, showRunM
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-sm font-semibold text-primary-foreground transition-transform hover:scale-105"
             >
-              D
+              {userInitial}
             </button>
             {showUserMenu && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
                 <div className="absolute right-0 top-12 z-50 w-56 rounded-xl border bg-card shadow-card-hover p-2 animate-scale-in">
                   <div className="px-3 py-2 border-b border-border mb-1">
-                    <p className="text-sm font-semibold text-foreground">Demo Runner</p>
-                    <p className="text-xs text-muted-foreground">demo@marathoncoach.app</p>
+                    <p className="text-sm font-semibold text-foreground">{userEmail}</p>
                   </div>
-                  <button className="flex items-center gap-2 w-full px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors">
+                  <button
+                    onClick={() => { setShowUserMenu(false); signOut() }}
+                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+                  >
                     <LogOut className="w-4 h-4" />
                     Sign out
                   </button>

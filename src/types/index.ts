@@ -8,9 +8,9 @@ export interface UserProfile {
   id: string
   email: string
   created_at: string
-  race_date: string
+  race_date: string | null
   goal_time: string | null
-  fitness_level: FitnessLevel
+  fitness_level: FitnessLevel | null
   training_plan_id: string | null
   marathon_pace: number | null
   easy_pace: number | null

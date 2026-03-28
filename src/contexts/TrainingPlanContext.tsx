@@ -10,7 +10,7 @@ interface TrainingPlanState {
   todayWorkout: Workout | null
   isLoading: boolean
   isGenerating: boolean
-  generatePlan: (raceDate: string, fitnessLevel: string, goalTime?: string | null) => Promise<TrainingPlan>
+  generatePlan: (userId: string, raceDate: string, fitnessLevel: string, goalTime?: string | null) => Promise<TrainingPlan>
   markWorkoutComplete: (workoutId: string, runId: string) => Promise<void>
   fetchPlan: (planId: string) => Promise<void>
   getWorkoutsForWeek: (weekNum: number) => Workout[]
@@ -41,7 +41,7 @@ export function TrainingPlanProvider({ children }: { children: ReactNode }) {
   const today = getTodayString()
   const todayWorkout = workouts.find(w => w.scheduled_date === today) || null
 
-  const generatePlan = useCallback(async (raceDate: string, fitnessLevel: string, goalTime?: string | null) => {
+  const generatePlan = useCallback(async (userId: string, raceDate: string, fitnessLevel: string, goalTime?: string | null) => {
     setIsGenerating(true)
     try {
       // Generate training schedule via AI
@@ -54,7 +54,7 @@ export function TrainingPlanProvider({ children }: { children: ReactNode }) {
 
       // Save plan to database
       const savedPlan = await plansService.savePlan({
-        user_id: '', // will be set from auth context
+        user_id: userId,
         method: 'hansons',
         level: fitnessLevel,
         start_date: startDate.toISOString().split('T')[0],

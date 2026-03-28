@@ -32,7 +32,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { data } = await authService.getCurrentUser()
       if (data?.user) {
-        const profile = await usersService.getUserProfile(data.user.id)
+        // Clean up OAuth callback params from URL
+        if (window.location.search.includes('insforge_code')) {
+          window.history.replaceState({}, '', window.location.pathname)
+        }
+
+        let profile = await usersService.getUserProfile(data.user.id)
+
+        // First-time user: create a skeleton profile row
+        if (!profile) {
+          profile = await usersService.createUserProfile({
+            id: data.user.id,
+            email: data.user.email,
+          })
+        }
+
         setUser(profile)
       }
     } catch {
@@ -43,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signInWithGoogle = useCallback(async () => {
-    await authService.signInWithGoogle(window.location.origin + '/app')
+    await authService.signInWithGoogle(window.location.origin)
   }, [])
 
   const signOut = useCallback(async () => {
