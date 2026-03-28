@@ -103,6 +103,18 @@ export interface AIFeedback {
   created_at: string
 }
 
+export interface MarathonEvent {
+  race_id: number
+  name: string
+  date: string
+  city: string | null
+  state: string | null
+  country_code: string | null
+  logo_url: string | null
+  url: string
+  distance: string | null
+}
+
 export interface OnboardingState {
   race_date: string | null
   fitness_level: FitnessLevel | null

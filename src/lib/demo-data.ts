@@ -1,4 +1,4 @@
-import type { Workout, Run, AIFeedback, WeekSchedule } from '@/types'
+import type { Workout, Run, AIFeedback, WeekSchedule, MarathonEvent } from '@/types'
 
 // Current date for demo
 const TODAY = '2026-03-28'
@@ -100,4 +100,63 @@ export const DEMO_PACE_TREND = [
   { date: 'W4', easy: 555, tempo: 480, speed: 452 },
   { date: 'W5', easy: 552, tempo: 478, speed: 450 },
   { date: 'W6', easy: 547, tempo: 475, speed: 448 },
+]
+
+// Upcoming marathon events for discovery (fallback data)
+export const DEMO_UPCOMING_EVENTS: MarathonEvent[] = [
+  {
+    race_id: 1001,
+    name: 'Seattle Marathon',
+    date: '2026-05-17',
+    city: 'Seattle',
+    state: 'WA',
+    country_code: 'US',
+    logo_url: null,
+    url: 'https://www.seattlemarathon.org/',
+    distance: 'Marathon',
+  },
+  {
+    race_id: 1002,
+    name: 'San Francisco Marathon',
+    date: '2026-06-21',
+    city: 'San Francisco',
+    state: 'CA',
+    country_code: 'US',
+    logo_url: null,
+    url: 'https://www.thesfmarathon.com/',
+    distance: 'Marathon',
+  },
+  {
+    race_id: 1003,
+    name: 'Rock \'n\' Roll Portland Marathon',
+    date: '2026-07-12',
+    city: 'Portland',
+    state: 'OR',
+    country_code: 'US',
+    logo_url: null,
+    url: 'https://www.runrocknroll.com/portland',
+    distance: 'Marathon',
+  },
+  {
+    race_id: 1004,
+    name: 'Chicago Marathon',
+    date: '2026-08-09',
+    city: 'Chicago',
+    state: 'IL',
+    country_code: 'US',
+    logo_url: null,
+    url: 'https://www.chicagomarathon.com/',
+    distance: 'Marathon',
+  },
+  {
+    race_id: 1005,
+    name: 'Twin Cities Marathon',
+    date: '2026-09-06',
+    city: 'Minneapolis',
+    state: 'MN',
+    country_code: 'US',
+    logo_url: null,
+    url: 'https://www.tcmevents.org/',
+    distance: 'Marathon',
+  },
 ]
