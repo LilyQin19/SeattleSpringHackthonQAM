@@ -43,7 +43,9 @@ export function OnboardingPage() {
       await refreshUser()
       // App.tsx will re-render to dashboard because hasCompletedOnboarding is now true
     } catch (err) {
-      setError('Failed to generate your training plan. Please try again.')
+      console.error('Training plan generation failed:', err)
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      setError(`Failed to generate your training plan: ${message}`)
     }
   }
 

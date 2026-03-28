@@ -2,15 +2,19 @@ import { insforge } from '@/config/insforge'
 import type { TrainingPlan, WeekSchedule } from '@/types'
 
 export async function generateTrainingPlan(
+  userId: string,
   raceDate: string,
   fitnessLevel: string,
   goalTime?: string | null
 ): Promise<{ plan: TrainingPlan; weeklySchedule: WeekSchedule[] }> {
   const { data, error } = await insforge.functions.invoke('generate-plan', {
-    body: { raceDate, fitnessLevel, goalTime },
+    body: { userId, raceDate, fitnessLevel, goalTime },
   })
 
   if (error) throw new Error(error.message || 'Failed to generate plan')
+  if (!data || !data.plan) {
+    throw new Error(data?.error || 'Invalid response from plan generation')
+  }
   return data as { plan: TrainingPlan; weeklySchedule: WeekSchedule[] }
 }
 

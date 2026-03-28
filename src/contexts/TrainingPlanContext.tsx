@@ -41,12 +41,12 @@ export function TrainingPlanProvider({ children }: { children: ReactNode }) {
   const today = getTodayString()
   const todayWorkout = workouts.find(w => w.scheduled_date === today) || null
 
-  const generatePlan = useCallback(async (_userId: string, raceDate: string, fitnessLevel: string, goalTime?: string | null) => {
+  const generatePlan = useCallback(async (userId: string, raceDate: string, fitnessLevel: string, goalTime?: string | null) => {
     setIsGenerating(true)
     try {
       // Call the edge function which handles AI generation, plan saving,
       // workout creation, and user profile update atomically on the backend
-      const result = await plansService.generateTrainingPlan(raceDate, fitnessLevel, goalTime)
+      const result = await plansService.generateTrainingPlan(userId, raceDate, fitnessLevel, goalTime)
       const savedPlan = result.plan
 
       // Fetch the workouts that were created by the edge function

@@ -6,6 +6,7 @@
 import { createClient } from 'npm:@insforge/sdk'
 
 interface RequestBody {
+  userId: string
   raceDate: string
   fitnessLevel: 'beginner' | 'intermediate' | 'advanced'
   goalTime?: string | null
@@ -24,9 +25,12 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   try {
-    const { raceDate, fitnessLevel, goalTime } = (await req.json()) as RequestBody
+    const { userId, raceDate, fitnessLevel, goalTime } = (await req.json()) as RequestBody
 
     // Validate inputs
+    if (!userId) {
+      return jsonResponse({ error: 'User ID is required' }, 400)
+    }
     const raceMs = new Date(raceDate).getTime()
     const nowMs = Date.now()
     const weeksUntilRace = (raceMs - nowMs) / (7 * 24 * 60 * 60 * 1000)
@@ -53,12 +57,13 @@ export default async function handler(req: Request): Promise<Response> {
     const mileage = MILEAGE_RANGES[fitnessLevel]
 
     // Generate plan via AI
-    const { data } = await insforge.ai.chat.completions.create({
+    const aiResponse = await insforge.ai.chat.completions.create({
       model: 'anthropic/claude-3.5-haiku',
+      max_tokens: 16000,
       messages: [
         {
           role: 'system',
-          content: `You are an expert marathon coach specializing in the Hansons Marathon Method. Generate structured 18-week training plans. Return ONLY valid JSON with a "weeks" array. Each week has: week number, week_starting date, total_miles, and a "days" array with 7 entries (Mon-Sun). Each day has: day name, date, type (easy/speed/tempo/long/rest), distance (null for rest), pace (string like "9:00" or null for rest), and description.`,
+          content: `You are an expert marathon coach specializing in the Hansons Marathon Method. Generate structured 18-week training plans. Return ONLY valid JSON with a "weeks" array. Each week has: week number, week_starting date, total_miles, and a "days" array with 7 entries (Mon-Sun). Each day has: day name, date, type (easy/speed/tempo/long/rest), distance (null for rest), pace (string like "9:00" or null for rest), and description. Keep descriptions very brief (under 8 words).`,
         },
         {
           role: 'user',
@@ -74,20 +79,38 @@ export default async function handler(req: Request): Promise<Response> {
 - Follow cumulative fatigue principle
 
 Calculate start date as ${raceDate} minus 18 weeks.
-Return ONLY the JSON object.`,
+Return ONLY the JSON object, no markdown or commentary.`,
         },
       ],
     })
 
-    const content = data.choices?.[0]?.message?.content
-    if (!content) throw new Error('AI returned empty response')
+    const aiData = aiResponse?.data ?? aiResponse
+    const content = aiData?.choices?.[0]?.message?.content
+    if (!content) {
+      console.error('AI returned empty content. Response:', JSON.stringify(aiData).substring(0, 500))
+      throw new Error('AI returned empty response')
+    }
 
     // Parse JSON from AI response
     const jsonMatch = content.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) throw new Error('AI response did not contain valid JSON')
+    if (!jsonMatch) {
+      console.error('No JSON in AI response:', content.substring(0, 500))
+      throw new Error('AI response did not contain valid JSON')
+    }
 
-    const parsed = JSON.parse(jsonMatch[0])
-    const weeklySchedule = parsed.weeks
+    let parsed: Record<string, unknown>
+    try {
+      parsed = JSON.parse(jsonMatch[0])
+    } catch (parseErr) {
+      console.error('JSON parse error:', parseErr, 'Content start:', jsonMatch[0].substring(0, 200))
+      throw new Error('Failed to parse AI response as valid JSON')
+    }
+
+    const weeklySchedule = parsed.weeks as Array<{ week: number; week_starting: string; total_miles: number; days: Array<{ day: string; date: string; type: string; distance: number | null; pace: string | null; description: string }> }>
+    if (!Array.isArray(weeklySchedule) || weeklySchedule.length === 0) {
+      console.error('Invalid weeks structure. Keys:', Object.keys(parsed))
+      throw new Error('AI response missing valid "weeks" array')
+    }
 
     // Calculate plan dates
     const raceDateObj = new Date(raceDate)
@@ -95,12 +118,7 @@ Return ONLY the JSON object.`,
     startDate.setDate(startDate.getDate() - 18 * 7)
     const startDateStr = startDate.toISOString().split('T')[0]
 
-    // Get authenticated user
-    const { data: authData } = await insforge.auth.getCurrentUser()
-    const userId = authData?.user?.id
-    if (!userId) throw new Error('User not authenticated')
-
-    // Save plan to database
+    // Save plan to database (userId comes from the authenticated frontend request)
     const { data: planData, error: planError } = await insforge.database
       .from('training_plans')
       .insert({
@@ -129,7 +147,11 @@ Return ONLY the JSON object.`,
       }))
     )
 
-    await insforge.database.from('workouts').insert(workoutRows)
+    const { error: workoutsError } = await insforge.database.from('workouts').insert(workoutRows)
+    if (workoutsError) {
+      console.error('Failed to insert workouts:', workoutsError)
+      throw workoutsError
+    }
 
     // Calculate paces and update user profile
     let paces = {}
@@ -150,12 +172,13 @@ Return ONLY the JSON object.`,
       training_plan_id: plan.id,
       race_date: raceDate,
       fitness_level: fitnessLevel,
-      goal_time: goalTime,
+      goal_time: goalTime || null,
       ...paces,
     }).eq('id', userId)
 
     return jsonResponse({ plan, weeklySchedule })
   } catch (err) {
+    console.error('generate-plan error:', err)
     const message = err instanceof Error ? err.message : 'Internal server error'
     return jsonResponse({ error: message }, 500)
   }
