@@ -5,13 +5,13 @@ export async function generateTrainingPlan(
   raceDate: string,
   fitnessLevel: string,
   goalTime?: string | null
-) {
+): Promise<{ plan: TrainingPlan; weeklySchedule: WeekSchedule[] }> {
   const { data, error } = await insforge.functions.invoke('generate-plan', {
     body: { raceDate, fitnessLevel, goalTime },
   })
 
   if (error) throw new Error(error.message || 'Failed to generate plan')
-  return data as TrainingPlan
+  return data as { plan: TrainingPlan; weeklySchedule: WeekSchedule[] }
 }
 
 export async function getPlan(planId: string) {

@@ -20,3 +20,6 @@ dist-ssr
 .roo
 .trae
 .windsurf
+
+# Windows reserved device names (Git/MSYS quirk)
+nul

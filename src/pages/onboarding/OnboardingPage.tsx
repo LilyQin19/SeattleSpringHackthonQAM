@@ -7,7 +7,7 @@ import { useTrainingPlan } from '@/contexts/TrainingPlanContext'
 import type { FitnessLevel, OnboardingState } from '@/types'
 
 export function OnboardingPage() {
-  const { user, updateUser } = useAuth()
+  const { user, refreshUser } = useAuth()
   const { generatePlan, isGenerating } = useTrainingPlan()
 
   const [state, setState] = useState<OnboardingState>({
@@ -30,21 +30,17 @@ export function OnboardingPage() {
     try {
       setError(null)
 
-      // Generate training plan via AI and save to DB
-      const savedPlan = await generatePlan(
+      // Generate training plan via edge function (handles AI generation,
+      // plan + workout creation, and user profile update atomically)
+      await generatePlan(
         user.id,
         state.race_date,
         state.fitness_level,
         state.goal_time,
       )
 
-      // Update user profile with onboarding data + plan reference
-      await updateUser({
-        race_date: state.race_date,
-        fitness_level: state.fitness_level,
-        goal_time: state.goal_time,
-        training_plan_id: savedPlan.id,
-      })
+      // Refresh user profile from DB (edge function already updated it)
+      await refreshUser()
       // App.tsx will re-render to dashboard because hasCompletedOnboarding is now true
     } catch (err) {
       setError('Failed to generate your training plan. Please try again.')

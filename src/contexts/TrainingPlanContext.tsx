@@ -41,29 +41,16 @@ export function TrainingPlanProvider({ children }: { children: ReactNode }) {
   const today = getTodayString()
   const todayWorkout = workouts.find(w => w.scheduled_date === today) || null
 
-  const generatePlan = useCallback(async (userId: string, raceDate: string, fitnessLevel: string, goalTime?: string | null) => {
+  const generatePlan = useCallback(async (_userId: string, raceDate: string, fitnessLevel: string, goalTime?: string | null) => {
     setIsGenerating(true)
     try {
-      // Generate training schedule via AI
-      const weeklySchedule = await plansService.generatePlanWithAI(raceDate, fitnessLevel, goalTime)
+      // Call the edge function which handles AI generation, plan saving,
+      // workout creation, and user profile update atomically on the backend
+      const result = await plansService.generateTrainingPlan(raceDate, fitnessLevel, goalTime)
+      const savedPlan = result.plan
 
-      // Calculate start date (18 weeks before race)
-      const raceDateObj = new Date(raceDate)
-      const startDate = new Date(raceDateObj)
-      startDate.setDate(startDate.getDate() - 18 * 7)
-
-      // Save plan to database
-      const savedPlan = await plansService.savePlan({
-        user_id: userId,
-        method: 'hansons',
-        level: fitnessLevel,
-        start_date: startDate.toISOString().split('T')[0],
-        race_date: raceDate,
-        weekly_schedule: weeklySchedule,
-      })
-
-      // Hydrate individual workout rows
-      const savedWorkouts = await workoutsService.createWorkoutsFromPlan(savedPlan.id, weeklySchedule)
+      // Fetch the workouts that were created by the edge function
+      const savedWorkouts = await workoutsService.getWorkoutsForPlan(savedPlan.id)
 
       setPlan(savedPlan)
       setWorkouts(savedWorkouts)
