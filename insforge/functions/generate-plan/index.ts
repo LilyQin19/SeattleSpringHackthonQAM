@@ -9,6 +9,7 @@ interface RequestBody {
   raceDate: string
   fitnessLevel: 'beginner' | 'intermediate' | 'advanced'
   goalTime?: string | null
+  userId: string
 }
 
 const MILEAGE_RANGES = {
@@ -24,7 +25,7 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   try {
-    const { raceDate, fitnessLevel, goalTime } = (await req.json()) as RequestBody
+    const { raceDate, fitnessLevel, goalTime, userId } = (await req.json()) as RequestBody
 
     // Validate inputs
     const raceMs = new Date(raceDate).getTime()
@@ -38,14 +39,11 @@ export default async function handler(req: Request): Promise<Response> {
       return jsonResponse({ error: 'Invalid fitness level' }, 400)
     }
 
-    // Initialize InsForge client from auth header
-    const authHeader = req.headers.get('Authorization') || ''
-    const userToken = authHeader.replace('Bearer ', '')
+    // Create InsForge client with anonKey only
+    // User is validated via userId from request body
     const insforge = createClient({
       baseUrl: Deno.env.get('INSFORGE_BASE_URL')!,
-      ...(userToken
-        ? { edgeFunctionToken: userToken }
-        : { anonKey: Deno.env.get('ANON_KEY')! }),
+      anonKey: Deno.env.get('ANON_KEY')!,
     })
 
     // Calculate pace targets
@@ -53,7 +51,7 @@ export default async function handler(req: Request): Promise<Response> {
     const mileage = MILEAGE_RANGES[fitnessLevel]
 
     // Generate plan via AI
-    const { data } = await insforge.ai.chat.completions.create({
+    const aiResult = await insforge.ai.chat.completions.create({
       model: 'anthropic/claude-3.5-haiku',
       messages: [
         {
@@ -79,8 +77,18 @@ Return ONLY the JSON object.`,
       ],
     })
 
-    const content = data.choices?.[0]?.message?.content
-    if (!content) throw new Error('AI returned empty response')
+    // Handle both possible response formats from InsForge AI SDK
+    // Format 1: Direct completion object with choices[].message.content
+    // Format 2: Wrapped in {data, error} where data has choices or text
+    const completion = (aiResult as any)?.data ?? aiResult
+    const content = completion?.choices?.[0]?.message?.content 
+      ?? completion?.text
+      ?? (typeof completion === 'string' ? completion : null)
+    
+    if (!content) {
+      console.error('AI response structure:', JSON.stringify(aiResult, null, 2))
+      throw new Error('AI returned empty response')
+    }
 
     // Parse JSON from AI response
     const jsonMatch = content.match(/\{[\s\S]*\}/)
@@ -95,10 +103,14 @@ Return ONLY the JSON object.`,
     startDate.setDate(startDate.getDate() - 18 * 7)
     const startDateStr = startDate.toISOString().split('T')[0]
 
-    // Get authenticated user
-    const { data: authData } = await insforge.auth.getCurrentUser()
-    const userId = authData?.user?.id
-    if (!userId) throw new Error('User not authenticated')
+    // Validate userId exists in database
+    if (!userId) throw new Error('userId is required')
+    const { data: userCheck } = await insforge.database
+      .from('users')
+      .select('id')
+      .eq('id', userId)
+      .single()
+    if (!userCheck) throw new Error('User not found')
 
     // Save plan to database
     const { data: planData, error: planError } = await insforge.database

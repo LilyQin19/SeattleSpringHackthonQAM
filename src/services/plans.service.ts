@@ -2,12 +2,13 @@ import { insforge } from '@/config/insforge'
 import type { TrainingPlan, WeekSchedule } from '@/types'
 
 export async function generateTrainingPlan(
+  userId: string,
   raceDate: string,
   fitnessLevel: string,
   goalTime?: string | null
 ): Promise<{ plan: TrainingPlan; weeklySchedule: WeekSchedule[] }> {
   const { data, error } = await insforge.functions.invoke('generate-plan', {
-    body: { raceDate, fitnessLevel, goalTime },
+    body: { userId, raceDate, fitnessLevel, goalTime },
   })
 
   if (error) throw new Error(error.message || 'Failed to generate plan')
@@ -42,7 +43,7 @@ export async function generatePlanWithAI(
 ): Promise<WeekSchedule[]> {
   const goalTimeStr = goalTime ? `Goal marathon time: ${goalTime}` : 'No specific goal time set'
 
-  const { data } = await insforge.ai.chat.completions.create({
+  const aiResult = await insforge.ai.chat.completions.create({
     model: 'anthropic/claude-3.5-haiku',
     messages: [
       {
@@ -84,8 +85,18 @@ Return as JSON with this exact structure:
     ],
   })
 
-  const content = data.choices?.[0]?.message?.content
-  if (!content) throw new Error('AI returned empty response')
+  // Handle both possible response formats from InsForge AI SDK
+  // Format 1: Direct completion object with choices[].message.content
+  // Format 2: Wrapped in {data, error} where data has choices or text
+  const completion = (aiResult as any)?.data ?? aiResult
+  const content = completion?.choices?.[0]?.message?.content 
+    ?? completion?.text
+    ?? (typeof completion === 'string' ? completion : null)
+  
+  if (!content) {
+    console.error('AI response structure:', JSON.stringify(aiResult, null, 2))
+    throw new Error('AI returned empty response')
+  }
 
   const jsonMatch = content.match(/\{[\s\S]*\}/)
   if (!jsonMatch) throw new Error('AI response did not contain valid JSON')
