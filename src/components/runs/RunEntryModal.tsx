@@ -2,15 +2,20 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { X, Sparkles, CheckCircle, AlertTriangle } from 'lucide-react'
-import { DEMO_FEEDBACK, formatPace } from '@/lib/demo-data'
+import { formatPace } from '@/lib/demo-data'
 import { WORKOUT_COLORS } from '@/lib/constants'
-import type { RunFormData } from '@/types'
+import { useRuns } from '@/contexts/RunContext'
+import { useAuth } from '@/contexts/AuthContext'
+import type { RunFormData, AIFeedback } from '@/types'
 
 interface RunEntryModalProps {
   onClose: () => void
 }
 
 export function RunEntryModal({ onClose }: RunEntryModalProps) {
+  const { addRun, requestFeedback } = useRuns()
+  const { user } = useAuth()
+  
   const [form, setForm] = useState<RunFormData>({
     date: '2026-03-28',
     distance: '',
@@ -24,21 +29,90 @@ export function RunEntryModal({ onClose }: RunEntryModalProps) {
   const [showFeedback, setShowFeedback] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoadingFeedback, setIsLoadingFeedback] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [feedback, setFeedback] = useState<AIFeedback | null>(null)
 
   const distNum = parseFloat(form.distance) || 0
   const totalSeconds = (parseInt(form.duration_hours || '0') * 3600) + (parseInt(form.duration_minutes || '0') * 60) + (parseInt(form.duration_seconds || '0'))
   const pace = distNum > 0 && totalSeconds > 0 ? totalSeconds / distNum : 0
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    setError(null)
     setIsSubmitting(true)
-    setTimeout(() => {
+    
+    try {
+      // Validate form data
+      if (!form.distance || parseFloat(form.distance) <= 0) {
+        throw new Error('Please enter a valid distance')
+      }
+      if (!form.duration_minutes && !form.duration_hours && !form.duration_seconds) {
+        throw new Error('Please enter a duration')
+      }
+      if (!user?.id) {
+        throw new Error('You must be logged in to save a run')
+      }
+
+      // Transform form data to database format
+      const hours = parseInt(form.duration_hours || '0')
+      const minutes = parseInt(form.duration_minutes || '0')
+      const seconds = parseInt(form.duration_seconds || '0')
+      const duration = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+      
+      const distance = parseFloat(form.distance)
+      const avgPace = distance > 0 && totalSeconds > 0 ? totalSeconds / distance : null
+
+      // Create run data object
+      const runData = {
+        user_id: user.id,
+        workout_id: form.workout_id,
+        source: 'manual' as const,
+        external_id: null,
+        date: form.date,
+        distance: distance,
+        duration: duration,
+        avg_pace: avgPace,
+        avg_hr: null,
+        max_hr: null,
+        perceived_effort: form.perceived_effort,
+        notes: form.notes || null,
+      }
+
+      // Save run to database
+      const savedRun = await addRun(runData)
+
+      // Show feedback section
       setIsSubmitting(false)
       setIsLoadingFeedback(true)
       setShowFeedback(true)
-      setTimeout(() => {
+
+      // Request AI feedback (best effort - don't fail if AI fails)
+      try {
+        if (form.workout_id) {
+          const aiFeedback = await requestFeedback(savedRun.id, form.workout_id)
+          setFeedback(aiFeedback)
+        }
+      } catch (aiError) {
+        // AI feedback failed but run was saved - show generic feedback
+        console.error('AI feedback failed:', aiError)
+        setFeedback({
+          id: '',
+          run_id: savedRun.id,
+          workout_id: form.workout_id || '',
+          summary: 'Your run has been saved successfully! AI feedback is temporarily unavailable.',
+          pace_analysis: null,
+          effort_assessment: null,
+          recommendations: ['Keep up the great work!', 'Consistency is key to marathon success.'],
+          fitness_score: null,
+          confidence: null,
+          created_at: new Date().toISOString(),
+        })
+      } finally {
         setIsLoadingFeedback(false)
-      }, 2000)
-    }, 800)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save run')
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -182,6 +256,13 @@ export function RunEntryModal({ onClose }: RunEntryModalProps) {
               />
             </div>
 
+            {/* Error Message */}
+            {error && (
+              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                <p className="text-sm text-destructive">{error}</p>
+              </div>
+            )}
+
             {/* Submit */}
             <Button
               variant="gradient"
@@ -219,46 +300,54 @@ export function RunEntryModal({ onClose }: RunEntryModalProps) {
             ) : (
               <div className="space-y-4 animate-fade-in-up">
                 {/* Fitness Score */}
-                <div className="text-center py-4">
-                  <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-accent mb-3 relative">
-                    <span className="text-3xl font-extrabold text-primary">{DEMO_FEEDBACK.fitness_score}</span>
-                    <span className="absolute -bottom-1 text-[10px] font-medium text-muted-foreground">/100</span>
+                {feedback?.fitness_score !== null && feedback?.fitness_score !== undefined && (
+                  <div className="text-center py-4">
+                    <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-accent mb-3 relative">
+                      <span className="text-3xl font-extrabold text-primary">{feedback.fitness_score}</span>
+                      <span className="absolute -bottom-1 text-[10px] font-medium text-muted-foreground">/100</span>
+                    </div>
+                    <p className="text-sm font-semibold text-foreground">Fitness Score</p>
+                    <div className="w-48 h-2 bg-secondary rounded-full mx-auto mt-2 overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${feedback.fitness_score}%`, background: 'var(--gradient-progress)' }} />
+                    </div>
                   </div>
-                  <p className="text-sm font-semibold text-foreground">Fitness Score</p>
-                  <div className="w-48 h-2 bg-secondary rounded-full mx-auto mt-2 overflow-hidden">
-                    <div className="h-full rounded-full" style={{ width: `${DEMO_FEEDBACK.fitness_score}%`, background: 'var(--gradient-progress)' }} />
-                  </div>
-                </div>
+                )}
 
                 {/* Summary */}
                 <Card className="p-4 border-primary/20">
-                  <p className="text-sm text-foreground leading-relaxed">{DEMO_FEEDBACK.summary}</p>
+                  <p className="text-sm text-foreground leading-relaxed">{feedback?.summary || 'Your run has been saved successfully!'}</p>
                 </Card>
 
                 {/* Pace Analysis */}
-                <Card className="p-4">
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Pace Analysis</h3>
-                  <p className="text-sm text-foreground leading-relaxed">{DEMO_FEEDBACK.pace_analysis}</p>
-                </Card>
+                {feedback?.pace_analysis && (
+                  <Card className="p-4">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Pace Analysis</h3>
+                    <p className="text-sm text-foreground leading-relaxed">{feedback.pace_analysis}</p>
+                  </Card>
+                )}
 
                 {/* Effort Assessment */}
-                <Card className="p-4">
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Effort Assessment</h3>
-                  <p className="text-sm text-foreground leading-relaxed">{DEMO_FEEDBACK.effort_assessment}</p>
-                </Card>
+                {feedback?.effort_assessment && (
+                  <Card className="p-4">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Effort Assessment</h3>
+                    <p className="text-sm text-foreground leading-relaxed">{feedback.effort_assessment}</p>
+                  </Card>
+                )}
 
                 {/* Recommendations */}
-                <Card className="p-4">
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Recommendations</h3>
-                  <div className="space-y-2.5">
-                    {DEMO_FEEDBACK.recommendations.map((rec, i) => (
-                      <div key={i} className="flex items-start gap-2">
-                        <CheckCircle className="w-4 h-4 text-success mt-0.5 shrink-0" />
-                        <p className="text-sm text-foreground">{rec}</p>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
+                {feedback?.recommendations && feedback.recommendations.length > 0 && (
+                  <Card className="p-4">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Recommendations</h3>
+                    <div className="space-y-2.5">
+                      {feedback.recommendations.map((rec, i) => (
+                        <div key={i} className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-success mt-0.5 shrink-0" />
+                          <p className="text-sm text-foreground">{rec}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                )}
 
                 <Button variant="outline" className="w-full" onClick={onClose}>
                   Done

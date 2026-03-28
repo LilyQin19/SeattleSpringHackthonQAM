@@ -4,6 +4,7 @@ import { WORKOUT_COLORS, DAYS_SHORT } from '@/lib/constants'
 import { DEMO_WORKOUTS, DEMO_WEEK_SCHEDULE, DEMO_RUNS, formatPace } from '@/lib/demo-data'
 import { Flame, TrendingUp, CheckCircle2, ChevronRight } from 'lucide-react'
 import { UpcomingEventsCard } from '@/components/events/UpcomingEventsCard'
+import { AISummaryCard } from '@/components/dashboard/AISummaryCard'
 
 interface DashboardPageProps {
   onLogRun: () => void
@@ -19,6 +20,9 @@ export function DashboardPage({ onLogRun }: DashboardPageProps) {
 
   return (
     <div className="p-4 md:pt-20 space-y-4 animate-fade-in">
+      {/* AI Training Summary */}
+      <AISummaryCard />
+
       {/* Weekly Strip */}
       <Card className="overflow-hidden">
         <CardHeader className="pb-3">
