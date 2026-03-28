@@ -1,0 +1,175 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ─── Brand Identity ─── */
+    /* Deep indigo primary — evokes endurance, ambition, trust */
+    --primary: 245 58% 51%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 245 80% 68%;
+
+    /* ─── Surface System ─── */
+    --background: 220 20% 97%;
+    --foreground: 224 30% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 30% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 30% 12%;
+
+    /* ─── Semantic Surfaces ─── */
+    --secondary: 220 16% 93%;
+    --secondary-foreground: 224 30% 12%;
+    --muted: 220 16% 93%;
+    --muted-foreground: 220 10% 46%;
+    --accent: 245 60% 96%;
+    --accent-foreground: 245 58% 51%;
+
+    /* ─── Feedback ─── */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 152 60% 42%;
+
+    /* ─── Borders & Inputs ─── */
+    --border: 220 16% 90%;
+    --input: 220 16% 90%;
+    --ring: 245 58% 51%;
+    --radius: 0.75rem;
+
+    /* ─── Workout Type Colors ─── */
+    --workout-easy: 152 60% 42%;
+    --workout-speed: 25 95% 53%;
+    --workout-tempo: 217 91% 55%;
+    --workout-long: 271 76% 53%;
+    --workout-rest: 220 13% 69%;
+
+    /* ─── Gradients ─── */
+    --gradient-hero: linear-gradient(135deg, hsl(245 58% 51%), hsl(271 76% 53%));
+    --gradient-hero-overlay: linear-gradient(180deg, hsl(245 58% 51% / 0.9), hsl(271 76% 53% / 0.85));
+    --gradient-card-shine: linear-gradient(135deg, hsl(0 0% 100% / 0.1), hsl(0 0% 100% / 0));
+    --gradient-progress: linear-gradient(90deg, hsl(245 58% 51%), hsl(271 76% 53%));
+
+    /* ─── Shadows ─── */
+    --shadow-elegant: 0 1px 3px hsl(224 30% 12% / 0.06), 0 8px 24px hsl(224 30% 12% / 0.08);
+    --shadow-card-hover: 0 4px 12px hsl(224 30% 12% / 0.08), 0 16px 40px hsl(224 30% 12% / 0.12);
+    --shadow-glow: 0 0 30px hsl(245 58% 51% / 0.25);
+    --shadow-fab: 0 4px 14px hsl(245 58% 51% / 0.35), 0 8px 24px hsl(245 58% 51% / 0.15);
+  }
+
+  .dark {
+    --primary: 245 70% 65%;
+    --primary-foreground: 224 30% 6%;
+    --primary-glow: 245 80% 75%;
+
+    --background: 224 30% 6%;
+    --foreground: 220 20% 95%;
+    --card: 224 25% 10%;
+    --card-foreground: 220 20% 95%;
+    --popover: 224 25% 10%;
+    --popover-foreground: 220 20% 95%;
+
+    --secondary: 224 20% 14%;
+    --secondary-foreground: 220 20% 95%;
+    --muted: 224 20% 14%;
+    --muted-foreground: 220 10% 55%;
+    --accent: 245 40% 16%;
+    --accent-foreground: 245 70% 75%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 152 55% 50%;
+
+    --border: 224 20% 18%;
+    --input: 224 20% 18%;
+    --ring: 245 70% 65%;
+
+    --workout-easy: 152 55% 50%;
+    --workout-speed: 25 90% 58%;
+    --workout-tempo: 217 85% 62%;
+    --workout-long: 271 70% 62%;
+    --workout-rest: 220 13% 50%;
+
+    --gradient-hero: linear-gradient(135deg, hsl(245 58% 40%), hsl(271 60% 35%));
+    --gradient-hero-overlay: linear-gradient(180deg, hsl(224 30% 6% / 0.85), hsl(245 58% 20% / 0.9));
+
+    --shadow-elegant: 0 1px 3px hsl(0 0% 0% / 0.2), 0 8px 24px hsl(0 0% 0% / 0.3);
+    --shadow-card-hover: 0 4px 12px hsl(0 0% 0% / 0.3), 0 16px 40px hsl(0 0% 0% / 0.4);
+    --shadow-glow: 0 0 30px hsl(245 70% 65% / 0.3);
+    --shadow-fab: 0 4px 14px hsl(245 70% 65% / 0.4), 0 8px 24px hsl(245 70% 65% / 0.2);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv11", "ss01", "ss03";
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/30;
+  }
+}
+
+@layer utilities {
+  /* Gradient text utility */
+  .text-gradient {
+    background: var(--gradient-hero);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Glass morphism */
+  .glass {
+    @apply bg-card/80 backdrop-blur-xl border border-border/50;
+  }
+
+  /* Workout type badge backgrounds */
+  .workout-easy {
+    background: hsl(var(--workout-easy) / 0.12);
+    color: hsl(var(--workout-easy));
+  }
+  .workout-speed {
+    background: hsl(var(--workout-speed) / 0.12);
+    color: hsl(var(--workout-speed));
+  }
+  .workout-tempo {
+    background: hsl(var(--workout-tempo) / 0.12);
+    color: hsl(var(--workout-tempo));
+  }
+  .workout-long {
+    background: hsl(var(--workout-long) / 0.12);
+    color: hsl(var(--workout-long));
+  }
+  .workout-rest {
+    background: hsl(var(--workout-rest) / 0.12);
+    color: hsl(var(--workout-rest));
+  }
+
+  /* Workout dot indicators */
+  .dot-easy { background: hsl(var(--workout-easy)); }
+  .dot-speed { background: hsl(var(--workout-speed)); }
+  .dot-tempo { background: hsl(var(--workout-tempo)); }
+  .dot-long { background: hsl(var(--workout-long)); }
+  .dot-rest { background: hsl(var(--workout-rest)); }
+}
