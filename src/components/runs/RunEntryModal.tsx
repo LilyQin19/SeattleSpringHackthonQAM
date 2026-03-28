@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { X, Sparkles, CheckCircle, AlertTriangle } from 'lucide-react'
@@ -6,6 +6,7 @@ import { formatPace } from '@/lib/demo-data'
 import { WORKOUT_COLORS } from '@/lib/constants'
 import { useRuns } from '@/contexts/RunContext'
 import { useAuth } from '@/contexts/AuthContext'
+import { useTrainingPlan } from '@/contexts/TrainingPlanContext'
 import type { RunFormData, AIFeedback } from '@/types'
 
 interface RunEntryModalProps {
@@ -15,6 +16,7 @@ interface RunEntryModalProps {
 export function RunEntryModal({ onClose }: RunEntryModalProps) {
   const { addRun, requestFeedback } = useRuns()
   const { user } = useAuth()
+  const { todayWorkout } = useTrainingPlan()
   
   const [form, setForm] = useState<RunFormData>({
     date: '2026-03-28',
@@ -24,8 +26,15 @@ export function RunEntryModal({ onClose }: RunEntryModalProps) {
     duration_seconds: '0',
     perceived_effort: null,
     notes: '',
-    workout_id: 'w6',
+    workout_id: null,
   })
+
+  // Update workout_id when todayWorkout becomes available
+  useEffect(() => {
+    if (todayWorkout?.id) {
+      setForm(f => ({ ...f, workout_id: todayWorkout.id }))
+    }
+  }, [todayWorkout])
   const [showFeedback, setShowFeedback] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoadingFeedback, setIsLoadingFeedback] = useState(false)
@@ -136,10 +145,18 @@ export function RunEntryModal({ onClose }: RunEntryModalProps) {
           /* Run Entry Form */
           <div className="p-4 space-y-4">
             {/* Matched workout */}
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-accent">
-              <div className={`px-2 py-1 rounded-md text-[10px] font-bold ${WORKOUT_COLORS.easy.className}`}>EASY</div>
-              <span className="text-sm text-foreground">Saturday Easy Run - 7 mi @ 9:00/mi</span>
-            </div>
+            {todayWorkout && (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-accent">
+                <div className={`px-2 py-1 rounded-md text-[10px] font-bold ${WORKOUT_COLORS[todayWorkout.type].className}`}>
+                  {WORKOUT_COLORS[todayWorkout.type].label.toUpperCase()}
+                </div>
+                <span className="text-sm text-foreground">
+                  {todayWorkout.description || `${WORKOUT_COLORS[todayWorkout.type].label} Run`}
+                  {todayWorkout.target_distance && ` - ${todayWorkout.target_distance} mi`}
+                  {todayWorkout.target_pace && ` @ ${formatPace(todayWorkout.target_pace)}/mi`}
+                </span>
+              </div>
+            )}
 
             {/* Date */}
             <div className="space-y-1.5">
