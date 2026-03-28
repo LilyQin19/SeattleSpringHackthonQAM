@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button'
 import { WORKOUT_COLORS, DAYS_SHORT } from '@/lib/constants'
 import { DEMO_WORKOUTS, DEMO_WEEK_SCHEDULE, DEMO_RUNS, formatPace } from '@/lib/demo-data'
 import { Flame, TrendingUp, CheckCircle2, ChevronRight } from 'lucide-react'
-import { UpcomingEventsCard } from '@/components/events/UpcomingEventsCard'
 import { AISummaryCard } from '@/components/dashboard/AISummaryCard'
 
 interface DashboardPageProps {
@@ -178,8 +177,6 @@ export function DashboardPage({ onLogRun }: DashboardPageProps) {
         </CardContent>
       </Card>
 
-      {/* Upcoming Marathons */}
-      <UpcomingEventsCard />
     </div>
   )
 }

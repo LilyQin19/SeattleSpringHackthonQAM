@@ -1,9 +1,10 @@
 import { type ReactNode, useState } from 'react'
-import { Calendar, BarChart3, Clock, Activity, Plus, LogOut } from 'lucide-react'
+import { Calendar, BarChart3, Clock, Activity, Plus, LogOut, Newspaper } from 'lucide-react'
 import { RunEntryModal } from '@/components/runs/RunEntryModal'
 import { useAuth } from '@/contexts/AuthContext'
+import { TrainingProgressBar } from '@/components/dashboard/TrainingProgressBar'
 
-type TabId = 'today' | 'calendar' | 'history' | 'analytics'
+type TabId = 'today' | 'calendar' | 'history' | 'analytics' | 'news'
 
 interface AppLayoutProps {
   children: ReactNode
@@ -19,6 +20,7 @@ const TABS: { id: TabId; label: string; icon: typeof Activity }[] = [
   { id: 'calendar', label: 'Calendar', icon: Calendar },
   { id: 'history', label: 'History', icon: Clock },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+  { id: 'news', label: 'News', icon: Newspaper },
 ]
 
 export function AppLayout({ children, activeTab, onTabChange, onLogRun, showRunModal, onCloseRunModal }: AppLayoutProps) {
@@ -70,6 +72,9 @@ export function AppLayout({ children, activeTab, onTabChange, onLogRun, showRunM
           </div>
         </div>
       </header>
+
+      {/* Training Progress Bar */}
+      <TrainingProgressBar />
 
       {/* Main content */}
       <main className="flex-1 pb-24 max-w-5xl mx-auto w-full">
