@@ -6,10 +6,11 @@ import { DashboardPage } from '@/pages/DashboardPage'
 import { CalendarPage } from '@/pages/CalendarPage'
 import { HistoryPage } from '@/pages/HistoryPage'
 import { AnalyticsPage } from '@/pages/AnalyticsPage'
+import { NewsPage } from '@/pages/NewsPage'
 import { AppLayout } from '@/layouts/AppLayout'
 
-type Tab = 'today' | 'calendar' | 'history' | 'analytics'
-type View = 'dashboard' | 'calendar' | 'history' | 'analytics'
+type Tab = 'today' | 'calendar' | 'history' | 'analytics' | 'news'
+type View = 'login' | 'onboarding' | 'dashboard' | 'calendar' | 'history' | 'analytics' | 'news'
 
 function App() {
   const { isLoading, isAuthenticated, hasCompletedOnboarding } = useAuth()
@@ -44,13 +45,14 @@ function App() {
   const activeTab: Tab = view === 'dashboard' ? 'today'
     : view === 'calendar' ? 'calendar'
     : view === 'history' ? 'history'
+    : view === 'news' ? 'news'
     : 'analytics'
 
   return (
     <AppLayout
       activeTab={activeTab}
       onTabChange={(tab) => {
-        const viewMap: Record<string, View> = { today: 'dashboard', calendar: 'calendar', history: 'history', analytics: 'analytics' }
+        const viewMap: Record<string, View> = { today: 'dashboard', calendar: 'calendar', history: 'history', analytics: 'analytics', news: 'news' }
         setView(viewMap[tab] || 'dashboard')
       }}
       onLogRun={() => setShowRunModal(true)}
@@ -61,6 +63,7 @@ function App() {
       {view === 'calendar' && <CalendarPage />}
       {view === 'history' && <HistoryPage />}
       {view === 'analytics' && <AnalyticsPage />}
+      {view === 'news' && <NewsPage />}
     </AppLayout>
   )
 }
