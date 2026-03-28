@@ -20,8 +20,8 @@ export function RunEntryModal({ onClose }: RunEntryModalProps) {
     date: '2026-03-28',
     distance: '',
     duration_hours: '0',
-    duration_minutes: '',
-    duration_seconds: '',
+    duration_minutes: '0',
+    duration_seconds: '0',
     perceived_effort: null,
     notes: '',
     workout_id: 'w6',
@@ -269,7 +269,7 @@ export function RunEntryModal({ onClose }: RunEntryModalProps) {
               size="lg"
               className="w-full gap-2"
               onClick={handleSubmit}
-              disabled={!form.distance || !form.duration_minutes || isSubmitting}
+              disabled={!form.distance || (!form.duration_hours && !form.duration_minutes && !form.duration_seconds) || isSubmitting}
             >
               {isSubmitting ? (
                 <>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { insforge } from '@/config/insforge'
-import { DEMO_WORKOUTS, DEMO_WEEK_SCHEDULE, DEMO_RUNS, DEMO_FEEDBACK, formatPace } from '@/lib/demo-data'
+import { DEMO_WORKOUTS, DEMO_WEEK_SCHEDULE, DEMO_RUNS, formatPace } from '@/lib/demo-data'
 import { DEMO_UPCOMING_EVENTS } from '@/lib/demo-data'
 import { Sparkles, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -24,7 +24,7 @@ const weeklyMilesPlanned = DEMO_WEEK_SCHEDULE.total_miles
 
 // Calculate average pace from recent runs
 const recentRuns = DEMO_RUNS.slice(0, 4)
-const avgPaceSeconds = recentRuns.reduce((sum, r) => sum + r.avg_pace, 0) / recentRuns.length
+const avgPaceSeconds = recentRuns.reduce((sum, r) => sum + (r.avg_pace ?? 0), 0) / recentRuns.length
 const avgPace = formatPace(avgPaceSeconds)
 
 // Fallback/demo summary
@@ -109,7 +109,7 @@ Be encouraging, mention their progress, and build excitement for the upcoming ra
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_tokens: 200,
+        maxTokens: 200,
       })
 
       const content = data.choices?.[0]?.message?.content
